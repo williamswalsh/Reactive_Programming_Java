@@ -1,8 +1,14 @@
+package fluxes;
+
 import org.junit.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
-import java.util.Objects;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class TransformingFluxes {
 
@@ -18,25 +24,66 @@ public class TransformingFluxes {
                 .expectNext(new Player("Gearoid McDaid"))
                 .verifyComplete();
     }
-}
 
-class Player {
-    String name;
+    // buffer combines the items into multiple lists of items of a specific size, 2 in this example
+    // N.B. Flux<String> becomes a Flux<List<String>>
+    @Test
+    public void usingBuffer() {
+        Flux<String> surfers = Flux.just("Kelly", "Nic", "Gearoid", "Mick", "Laurie");
+        Flux<List<String>> bufferedSurfers = surfers.buffer(2);
 
-    public Player(String name) {
-        this.name = name;
+        StepVerifier.create(bufferedSurfers)
+                .expectNext(Arrays.asList("Kelly", "Nic"))
+                .expectNext(Arrays.asList("Gearoid", "Mick"))
+                .expectNext(Arrays.asList("Laurie"))
+                .verifyComplete();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Player)) return false;
-        Player player = (Player) o;
-        return Objects.equals(name, player.name);
+    // buffer can be used with flatMap to process lists in parallel
+    // Above example will process multiple "2 item lists" in parallel
+    // List of items will be processed in its own thread
+    @Test
+    public void usingBufferWithFlatmap() {
+        Flux.just("grape", "banana", "pineapple", "apple", "tomato")
+                .buffer(2)
+                .flatMap(fl -> Flux.fromIterable(fl)
+                        .map(String::toUpperCase)
+                        .subscribeOn(Schedulers.parallel())
+                        .log())
+                .subscribe();
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
+    // store all items in flux in a single list
+    // call buffer method with no arguments
+    // not sure of use case???
+    @Test
+    public void usingBufferNoArguments() {
+        Flux<List<String>> fruitListFlux= Flux.just("grape", "banana", "pineapple", "apple", "tomato")
+                .buffer();
+    }
+
+    // Collects a flux of items into a single Mono which contains a List of items
+    @Test
+    public void usingCollectList() {
+        Flux<String> fruitFlux= Flux.just("grape", "banana", "pineapple", "apple", "tomato");
+
+        Mono<List<String>> fruitListMono = fruitFlux.collectList();
+
+        StepVerifier.create(fruitListMono)
+                .expectNext(Arrays.asList("grape", "banana", "pineapple", "apple", "tomato"))
+                .verifyComplete();
+    }
+
+    // Collects a flux of items into a single Mono which contains a List of items
+    // verifyComplete does behave as expected -> Single Mono
+    @Test
+    public void usingCollectMap() {
+        Flux<String> fruitFlux= Flux.just("grape", "banana", "pineapple", "apple", "tomato");
+
+        Mono<Map<Character, String>> fruitMapMono = fruitFlux.collectMap(value -> value.charAt(0));
+
+        StepVerifier.create(fruitMapMono)
+                .expectNextMatches(map -> map.size() == 5 && map.get('g').equals("grape"))
+                .verifyComplete();
     }
 }

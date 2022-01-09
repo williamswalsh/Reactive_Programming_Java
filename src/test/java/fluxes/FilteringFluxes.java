@@ -1,3 +1,5 @@
+package fluxes;
+
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;

@@ -1,3 +1,5 @@
+package monos;
+
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 
