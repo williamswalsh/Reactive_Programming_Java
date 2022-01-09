@@ -73,7 +73,7 @@ public class FluxTest {
 
     @Test
     public void createRangeFlux() {
-        Flux<Integer> rangeFlux = Flux.range(0, 5); // Start at 0, 5 numbers total 0,1,2,3,4
+        Flux<Integer> rangeFlux = Flux.range(0, 5); // Start at 0, 5 numbers total - 0,1,2,3,4
 
         StepVerifier.create(rangeFlux)
                 .expectNext(0)
